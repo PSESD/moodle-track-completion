@@ -51,28 +51,33 @@ require_once($CFG->dirroot . "/user/profile/lib.php"); // Custom field library.
 require_once($CFG->dirroot . "/lib/filelib.php");      // File handling on description and friends.
 
 require_once(dirname(__FILE__) . '/classes/form.php');
+require_once(dirname(__FILE__) . '/classes/adminform.php');
 
 
 require_login();
-admin_externalpage_setup('reportgroupcertificatecompletion', '', null, '', array('pagelayout'=>'report'));
+admin_externalpage_setup('reporttrackcompletion', '', null, '', array('pagelayout'=>'report'));
 
-$baseurl = new moodle_url('/report/groupcertificatecompletion/index.php');
-$mform = new report_groupcertificatecompletion\filter_form($baseurl, array());
+$baseurl = new moodle_url('/report/trackcompletion/index.php');
+$mform = new report_trackcompletion\filter_form($baseurl, array());
 $download = optional_param('download', false, PARAM_SAFEDIR);
 $group = optional_param('group', false, PARAM_SAFEDIR);
 
 $context = \context_system::instance();
 if (has_capability('moodle/site:config', $context)) {
-    $category = optional_param('config_category', false, PARAM_RAW);
-    $courses = optional_param_array('config_courses', false, PARAM_INT);
-    $changed = false;
-    if ($category && ($category = serialize($category)) && $category !== get_config('report_groupcertificatecompletion', 'category')) {
-        set_config('category', $category, 'report_groupcertificatecompletion');
-        $changed = true;
-    }
-    if ($courses && ($courses = serialize($courses)) && $courses !== get_config('report_groupcertificatecompletion', 'courses')) {
-        set_config('courses', $courses, 'report_groupcertificatecompletion');
-        $changed = true;
+    $aform = new report_trackcompletion\admin_form($baseurl, array());
+    $save = optional_param('savebutton', false, PARAM_SAFEDIR);
+    if ($save) {
+        $category = optional_param('config_category', false, PARAM_RAW);
+        $courses = optional_param_array('config_courses', false, PARAM_INT);
+        $changed = false;
+        if ($category && ($category = serialize($category)) && $category !== get_config('report_trackcompletion', 'category')) {
+            set_config('category', $category, 'report_trackcompletion');
+            $changed = true;
+        }
+        if ($courses && ($courses = serialize($courses)) && $courses !== get_config('report_trackcompletion', 'courses')) {
+            set_config('courses', $courses, 'report_trackcompletion');
+            $changed = true;
+        }
     }
 }
 $startDate = false;
@@ -84,22 +89,25 @@ if ($data) {
 }
 
 if ($download) {
-	\report_groupcertificatecompletion\event\report_viewed::create(array('other' => array('group' => $group, 'start_date' => $startDate, 'end_date' => $endDate)))->trigger();
-	$reporter = new \report_groupcertificatecompletion\extract($group, $startDate, $endDate);
+	\report_trackcompletion\event\report_viewed::create(array('other' => array('group' => $group, 'start_date' => $startDate, 'end_date' => $endDate)))->trigger();
+	$reporter = new \report_trackcompletion\extract($group, $startDate, $endDate);
 	$reporter->serveFile();
 	exit(0);
 }
 echo $OUTPUT->header();
 
-echo $OUTPUT->heading(get_string('pluginname', 'report_groupcertificatecompletion'));
+echo $OUTPUT->heading(get_string('pluginname', 'report_trackcompletion'));
 echo $OUTPUT->box_start('generalbox boxwidthwide boxaligncenter centerpara');
+if (isset($aform)) {
+    $aform->display();
+}
 $mform->display();
 if ($mform->is_cancelled()) {
     // Redirect to course view page if form is cancelled.
     redirect('/');
 } else if ($data) {
-    \report_groupcertificatecompletion\event\report_viewed::create(array('other' => array('group' => $group, 'start_date' => $startDate, 'end_date' => $endDate)))->trigger();
-    $reporter = new \report_groupcertificatecompletion\extract($group, $startDate, $endDate);
+    \report_trackcompletion\event\report_viewed::create(array('other' => array('group' => $group, 'start_date' => $startDate, 'end_date' => $endDate)))->trigger();
+    $reporter = new \report_trackcompletion\extract($group, $startDate, $endDate);
     $reporter->serveTable();
 }
 

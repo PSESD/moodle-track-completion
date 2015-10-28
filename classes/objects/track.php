@@ -1,5 +1,5 @@
 <?php
-namespace report_groupcertificatecompletion\objects;
+namespace report_trackcompletion\objects;
 
 class track extends base {
 	static $_tracks = array();

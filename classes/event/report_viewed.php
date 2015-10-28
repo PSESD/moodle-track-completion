@@ -21,7 +21,7 @@
  * @copyright  2014 Petr Skoda
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-namespace report_groupcertificatecompletion\event;
+namespace report_trackcompletion\event;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -58,7 +58,7 @@ class report_viewed extends \core\event\base {
      * @return string
      */
     public static function get_name() {
-        return get_string('eventreportviewed', 'report_groupcertificatecompletion');
+        return get_string('eventreportviewed', 'report_trackcompletion');
     }
 
     /**
@@ -79,7 +79,7 @@ class report_viewed extends \core\event\base {
         $group = $this->other['group'];
         $start_date = $this->other['start_date'];
         $end_date = $this->other['end_date'];
-        return array(SITEID, "admin", "report groupcertificatecompletion", "report/groupcertificatecompletion/index.php?group=$group&start_date=$start_date&end_date=$end_date", $group);
+        return array(SITEID, "admin", "report trackcompletion", "report/trackcompletion/index.php?group=$group&start_date=$start_date&end_date=$end_date", $group);
     }
 
     /**
@@ -88,7 +88,7 @@ class report_viewed extends \core\event\base {
      * @return \moodle_url
      */
     public function get_url() {
-        return new \moodle_url('/report/groupcertificatecompletion/index.php', array('group' => $this->other['group'], 'start_date' => $this->other['start_date'], 'end_date' => $this->other['end_date']));
+        return new \moodle_url('/report/trackcompletion/index.php', array('group' => $this->other['group'], 'start_date' => $this->other['start_date'], 'end_date' => $this->other['end_date']));
     }
 
     /**

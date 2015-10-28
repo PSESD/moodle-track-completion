@@ -16,7 +16,7 @@
 
 
 
-namespace report_groupcertificatecompletion;
+namespace report_trackcompletion;
 
 defined('MOODLE_INTERNAL') || die;
 
@@ -37,36 +37,6 @@ class filter_form extends \moodleform {
         return $groupsSelect;
     }
 
-    public static function getCategories()
-    {
-        global $DB;
-        $categories = $DB->get_records_sql('SELECT id, name FROM {course_categories} ORDER BY name ASC');
-        $categorySelect = [];
-        foreach($categories as $cat) {
-            $name = $cat->name;
-            if (strlen($name) > static::MAX_NAME_LENGTH) {
-                $name = substr($name, 0, static::MAX_NAME_LENGTH) .'...';
-            }
-            $categorySelect[$cat->id] = $name;
-        }
-        return $categorySelect;
-    }
-
-    public static function getCourses()
-    {
-        global $DB;
-        $courses = $DB->get_records_sql('SELECT id, shortname FROM {course} ORDER BY shortname ASC');
-        $courseSelect = [];
-        foreach($courses as $course) {
-            $name = $course->shortname;
-            if (strlen($name) > static::MAX_NAME_LENGTH) {
-                $name = substr($name, 0, static::MAX_NAME_LENGTH) .'...';
-            }
-            $courseSelect[$course->id] = $name;
-        }
-        return $courseSelect;
-    }
-
     /**
      * @see lib/moodleform#definition()
      */
@@ -76,26 +46,15 @@ class filter_form extends \moodleform {
         
         // Add action button to the top of the form.
         $addactionbuttons = false;
-        $context = \context_system::instance();
-        if (has_capability('moodle/site:config', $context)) {
-            // Admin
-            $mform->addElement('header', 'grouphead', get_string('admin_settings', 'report_groupcertificatecompletion'));
-            $mform->setExpanded('grouphead', false);
-            $mform->addElement('select', 'config_category', get_string('admin_choose_category', 'report_groupcertificatecompletion'), static::getCategories());
-            $mform->addElement('select', 'config_courses', get_string('admin_choose_courses', 'report_groupcertificatecompletion'), static::getCourses(), array('multiple' => true));
-            $mform->setDefault('config_category', unserialize(get_config('report_groupcertificatecompletion', 'category')));
-            $mform->setDefault('config_courses', unserialize(get_config('report_groupcertificatecompletion', 'courses')));
-        }
-
         // Group
-        $mform->addElement('header', 'grouphead', get_string('choose_group', 'report_groupcertificatecompletion'));
+        $mform->addElement('header', 'grouphead', get_string('choose_group', 'report_trackcompletion'));
         $mform->setExpanded('grouphead', true);
         $groups = array_merge(['' => ''], static::getGroups());
         $mform->addElement('select', 'group', 'Group', $groups);
 
 
         // Date Range
-        $mform->addElement('header', 'daterangehead', get_string('choose_date_range', 'report_groupcertificatecompletion'));
+        $mform->addElement('header', 'daterangehead', get_string('choose_date_range', 'report_trackcompletion'));
         $mform->setExpanded('daterangehead', true);
         $mform->addElement('date_selector', 'start_date', 'Start Date');
         $mform->addElement('date_selector', 'end_date', 'End Date');
@@ -103,8 +62,8 @@ class filter_form extends \moodleform {
         $mform->setDefault('end_date', time());
         
         $buttonarray=array();
-        $buttonarray[] = &$mform->createElement('submit', 'submitbutton', get_string("display", 'report_groupcertificatecompletion'));
-        $buttonarray[] = &$mform->createElement('submit', 'download', get_string("download_csv", 'report_groupcertificatecompletion'));
+        $buttonarray[] = &$mform->createElement('submit', 'submitbutton', get_string("display", 'report_trackcompletion'));
+        $buttonarray[] = &$mform->createElement('submit', 'download', get_string("download_csv", 'report_trackcompletion'));
         $mform->addGroup($buttonarray, 'buttonar', '', array(' '), false);
         $mform->closeHeaderBefore('buttonar');
     }

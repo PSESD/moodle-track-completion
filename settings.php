@@ -24,9 +24,9 @@
  */
 
 defined('MOODLE_INTERNAL') || die;
-//if (has_capability('report/groupcertificatecompletion:view', $context)) {
-	$url = $CFG->wwwroot . '/report/groupcertificatecompletion/index.php';
-	    $ADMIN->add('reports', new admin_externalpage('reportgroupcertificatecompletion', get_string('pluginname', 'report_groupcertificatecompletion'), $url));
+//if (has_capability('report/trackcompletion:view', $context)) {
+	$url = $CFG->wwwroot . '/report/trackcompletion/index.php';
+	    $ADMIN->add('reports', new admin_externalpage('reporttrackcompletion', get_string('pluginname', 'report_trackcompletion'), $url));
 //}
 // no report settings
 $settings = null;

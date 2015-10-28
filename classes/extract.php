@@ -1,5 +1,5 @@
 <?php
-namespace report_groupcertificatecompletion;
+namespace report_trackcompletion;
 
 require_once($CFG->libdir . '/filelib.php');
 require_once($CFG->libdir . '/coursecatlib.php');
@@ -28,7 +28,7 @@ class extract extends object {
 	protected function prepare()
 	{
 		global $DB;
-		$courseCategory = get_config('report_groupcertificatecompletion', 'category');
+		$courseCategory = get_config('report_trackcompletion', 'category');
 		$courses = array();
 		if ($courseCategory) {
 			$categoryCoursesRaw = $DB->get_records('course', array('category' => unserialize($courseCategory)));
@@ -72,7 +72,7 @@ class extract extends object {
 		$columns[] = ['label' => 'Stars ID', 'value' => function($user) { return $user->getMetaField('starsid'); }];
 		$columns[] = ['label' => 'Group', 'value' => function($user) { return $user->getMetaField('groupname'); }];
 		
-		$courses = get_config('report_groupcertificatecompletion', 'courses');
+		$courses = get_config('report_trackcompletion', 'courses');
 		if (!empty($courses) && ($courses = unserialize($courses))) {
 			foreach ($courses as $courseId) {
 				$course = \get_course($courseId);
@@ -136,7 +136,7 @@ class extract extends object {
 		// $columns[] = ['label' => 'Stars ID', 'value' => function($user) { return $user->getMetaField('starsid'); }];
 		$columns[] = ['label' => 'Group', 'value' => function($user) { return $user->getMetaField('groupname'); }];
 
-		$courses = get_config('report_groupcertificatecompletion', 'courses');
+		$courses = get_config('report_trackcompletion', 'courses');
 		if (!empty($courses) && ($courses = unserialize($courses))) {
 			foreach ($courses as $courseId) {
 				$course = \get_course($courseId);
@@ -191,7 +191,7 @@ class extract extends object {
 	    }
 	    $path = [];
 	    $path[] = $CFG->dataroot;
-	    $path[] = $dataPath = 'admin_report_groupcertificatecompletiontemp';
+	    $path[] = $dataPath = 'admin_report_trackcompletiontemp';
 	    $path[] = date("Y-m-d_H-i-s") .'-'. $this->group .'.csv';
 	    \make_upload_directory($dataPath);
 	    return $this->_filePath = implode(DIRECTORY_SEPARATOR, $path);
@@ -204,7 +204,7 @@ class extract extends object {
 	    }
 	    $path = [];
 	    $path[] = $CFG->dataroot;
-	    $path[] = $dataPath = 'admin_report_groupcertificatecompletiontemp';
+	    $path[] = $dataPath = 'admin_report_trackcompletiontemp';
 	    $path[] = 'data_cache.csv';
 	    \make_upload_directory($dataPath);
 	    return $this->_cacheFilePath = implode(DIRECTORY_SEPARATOR, $path);

@@ -1,5 +1,5 @@
 <?php
-namespace report_groupcertificatecompletion\objects;
+namespace report_trackcompletion\objects;
 
 class user extends base {
 	protected $_track = false;
@@ -26,6 +26,45 @@ class user extends base {
 		    static::loadOne($userRaw);
 		    $fields->close();
 		}
+	}
+
+	public static function getAll($onlyValid = true)
+	{
+		$all = parent::getAll($onlyValid);
+		return static::arrayOrderBy($all, function($row) {
+			return $row->getMetaField('sitename');
+		}, SORT_ASC, 
+		function($row) {
+			return $row->getMetaField('lastname');
+		}, SORT_ASC, 
+		function($row) {
+			return $row->getMetaField('firstname');
+		}, SORT_ASC);
+	}
+
+	/* http://php.net/manual/en/function.array-multisort.php#100534 */
+	public static function arrayOrderBy()
+	{
+	    $args = func_get_args();
+	    $data = array_shift($args);
+	    foreach ($args as $n => $field) {
+	        if (is_string($field)) {
+	            $tmp = array();
+	            foreach ($data as $key => $row) {
+	                $tmp[$key] = $row[$field];
+	            }
+	            $args[$n] = $tmp;
+	        } elseif (is_callable($field)) {
+	            $tmp = array();
+	            foreach ($data as $key => $row) {
+	                $tmp[$key] = $field($row);
+	            }
+	            $args[$n] = $tmp;
+	        }
+	    }
+	    $args[] = &$data;
+	    call_user_func_array('array_multisort', $args);
+	    return array_pop($args);
 	}
 
 	public function getTotalCompletedCourses()

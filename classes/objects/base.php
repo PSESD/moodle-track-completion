@@ -1,7 +1,7 @@
 <?php
-namespace report_groupcertificatecompletion\objects;
+namespace report_trackcompletion\objects;
 
-class base extends \report_groupcertificatecompletion\object {
+class base extends \report_trackcompletion\object {
 	protected static $_registry = [];
 	protected $_id;
 	public $meta;

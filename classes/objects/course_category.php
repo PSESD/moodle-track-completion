@@ -1,5 +1,5 @@
 <?php
-namespace report_groupcertificatecompletion\objects;
+namespace report_trackcompletion\objects;
 
 class course_category extends base {
 	protected $_courses = [];

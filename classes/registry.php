@@ -1,5 +1,5 @@
 <?php
-namespace report_groupcertificatecompletion;
+namespace report_trackcompletion;
 
 class Registry extends Object {
 	
