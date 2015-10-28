@@ -25,7 +25,7 @@ require_once($CFG->libdir.'/grouplib.php');
 
 
 class filter_form extends \moodleform {
-
+    const MAX_NAME_LENGTH = 60;
     public static function getGroups()
     {
         global $DB;
@@ -37,15 +37,55 @@ class filter_form extends \moodleform {
         return $groupsSelect;
     }
 
+    public static function getCategories()
+    {
+        global $DB;
+        $categories = $DB->get_records_sql('SELECT id, name FROM {course_categories} ORDER BY name ASC');
+        $categorySelect = [];
+        foreach($categories as $cat) {
+            $name = $cat->name;
+            if (strlen($name) > static::MAX_NAME_LENGTH) {
+                $name = substr($name, 0, static::MAX_NAME_LENGTH) .'...';
+            }
+            $categorySelect[$cat->id] = $name;
+        }
+        return $categorySelect;
+    }
+
+    public static function getCourses()
+    {
+        global $DB;
+        $courses = $DB->get_records_sql('SELECT id, shortname FROM {course} ORDER BY shortname ASC');
+        $courseSelect = [];
+        foreach($courses as $course) {
+            $name = $course->shortname;
+            if (strlen($name) > static::MAX_NAME_LENGTH) {
+                $name = substr($name, 0, static::MAX_NAME_LENGTH) .'...';
+            }
+            $courseSelect[$course->id] = $name;
+        }
+        return $courseSelect;
+    }
+
     /**
      * @see lib/moodleform#definition()
      */
     public function definition() {
-        global $CFG, $COURSE, $DB, $PAGE;
+        global $CFG, $COURSE, $DB, $PAGE, $cm;
         $mform = $this->_form;
         
         // Add action button to the top of the form.
         $addactionbuttons = false;
+        $context = \context_system::instance();
+        if (has_capability('moodle/site:config', $context)) {
+            // Admin
+            $mform->addElement('header', 'grouphead', get_string('admin_settings', 'report_groupcertificatecompletion'));
+            $mform->setExpanded('grouphead', false);
+            $mform->addElement('select', 'config_category', get_string('admin_choose_category', 'report_groupcertificatecompletion'), static::getCategories());
+            $mform->addElement('select', 'config_courses', get_string('admin_choose_courses', 'report_groupcertificatecompletion'), static::getCourses(), array('multiple' => true));
+            $mform->setDefault('config_category', unserialize(get_config('report_groupcertificatecompletion', 'category')));
+            $mform->setDefault('config_courses', unserialize(get_config('report_groupcertificatecompletion', 'courses')));
+        }
 
         // Group
         $mform->addElement('header', 'grouphead', get_string('choose_group', 'report_groupcertificatecompletion'));

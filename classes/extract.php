@@ -13,7 +13,7 @@ class extract extends object {
 	public $startDate;
 	public $endDate;
 	public $error = false;
-	public $records = false;
+	public $users = false;
 	protected $_file;
 	protected $_filePath;
 
@@ -28,37 +28,63 @@ class extract extends object {
 	protected function prepare()
 	{
 		global $DB;
-		$groupExtra = '1=1';
-		if (!empty($this->group)) {
-			$groupExtra = 'g.enrolmentkey="'.$this->group.'"';
+		$courseCategory = get_config('report_groupcertificatecompletion', 'category');
+		$courses = array();
+		if ($courseCategory) {
+			$categoryCoursesRaw = $DB->get_records('course', array('category' => unserialize($courseCategory)));
+			foreach ($categoryCoursesRaw as $course) {
+				$courses[] = $course->id;
+			}
 		}
-		$sql = 'SELECT ci.id as certificate_issue_id, c.id as course_id, c.fullname as course_name, user.id as user_id, user.username as user_username, user.firstname as user_firstname, user.lastname as user_lastname, user.email as user_email, g.name as group_name, ci.timecreated as issue_date 
-			FROM {certificate_issues} ci
-			INNER JOIN {certificate} cert ON (cert.id = ci.certificateid)
-			INNER JOIN {course} c ON (cert.course = c.id)
-			INNER JOIN {user} user ON (ci.userid = user.id)
+		if (empty($courses)) {
+			return false;
+		}
+		$groupExtra = 'g.courseid IN (\''.implode("', '", $courses) .'\')';
+		if (!empty($this->group)) {
+			$groupExtra .= ' AND g.enrolmentkey="'.$this->group.'"';
+		}
+		$sql = 'SELECT user.id as user_id, g.name as group_name, g.id as group_id, g.courseid as course_id 
+			FROM {user} user
 			INNER JOIN {groups_members} gm ON (gm.userid = user.id)
 			INNER JOIN {groups} g ON (gm.groupid = g.id)
 			WHERE '.$groupExtra.'
-			AND ci.timecreated >= '.$this->startDate.'
-			AND ci.timecreated <= '.$this->endDate.' 
-			GROUP BY ci.id
-			ORDER BY user.lastname ASC, user.firstname ASC, c.fullname ASC';
+			AND gm.timeadded >= '.$this->startDate.'
+			AND gm.timeadded <= '.$this->endDate.' 
+			GROUP BY user.id
+			ORDER BY user.lastname ASC, user.firstname ASC';
 		$records = $DB->get_records_sql($sql);
-		$this->records = $records;
+		$groupMap = array();
+		foreach ($records as $record) {
+			$groupMap[$record->user_id] = array('id' => $record->group_id, 'name' => $record->group_name, 'course' => $record->course_id);
+		}
+		objects\user::load($groupMap);
 	}
 
 	protected function rollCsv()
 	{
 		$columns = [];
-		$columns[] = ['label' => 'First Name', 'value' => function($record) { return $record->user_firstname; }];
-		$columns[] = ['label' => 'Last Name', 'value' => function($record) { return $record->user_lastname; }];
-		$columns[] = ['label' => 'Username', 'value' => function($record) { return $record->user_username; }];
-		$columns[] = ['label' => 'Email', 'value' => function($record) { return $record->user_email; }];
-		$columns[] = ['label' => 'Course ID', 'value' => function($record) { return $record->course_id; }];
-		$columns[] = ['label' => 'Course Title', 'value' => function($record) { return $record->course_name; }];
-		$columns[] = ['label' => 'Group', 'value' => function($record) { return $record->group_name; }];
-		$columns[] = ['label' => 'Certificate Date', 'value' => function($record) { return date("Y-m-d", $record->issue_date); }];
+		$columns[] = ['label' => 'First Name', 'value' => function($user) { return $user->getMetaField('firstname'); }];
+		$columns[] = ['label' => 'Last Name', 'value' => function($user) { return $user->getMetaField('lastname'); }];
+		$columns[] = ['label' => 'Username', 'value' => function($user) { return $user->getMetaField('username'); }];
+		$columns[] = ['label' => 'Email', 'value' => function($user) { return $user->getMetaField('email'); }];
+		$columns[] = ['label' => 'Site Name', 'value' => function($user) { return $user->getMetaField('sitename'); }];
+		$columns[] = ['label' => 'Program', 'value' => function($user) { return $user->getMetaField('program'); }];
+		$columns[] = ['label' => 'Stars ID', 'value' => function($user) { return $user->getMetaField('starsid'); }];
+		$columns[] = ['label' => 'Group', 'value' => function($user) { return $user->getMetaField('groupname'); }];
+		
+		$courses = get_config('report_groupcertificatecompletion', 'courses');
+		if (!empty($courses) && ($courses = unserialize($courses))) {
+			foreach ($courses as $courseId) {
+				$course = \get_course($courseId);
+				if (empty($course)) { continue; }
+				$columns[] = ['label' => $course->shortname, 'value' => function($user) use ($courseId) { return $user->courseCompletionDate($courseId); }];
+			}
+		}
+
+		$columns[] = ['label' => 'Name of Track', 'value' => function($user) { return $user->getTrackName(); }];
+		$columns[] = ['label' => 'Total Number of Courses in Track', 'value' => function($user) { return $user->getNumberTrackCourses(); }];
+		$columns[] = ['label' => 'Number of track courses completed by Student', 'value' => function($user) { return $user->getNumberTrackCoursesCompleted(); }];
+		$columns[] = ['label' => 'Course Track Completion Date', 'value' => function($user) { return $user->courseTrackCompletionDate(); }];
 
 		$columnLabels = [];
 		foreach ($columns as $column) {
@@ -66,10 +92,10 @@ class extract extends object {
 		}
 		fputcsv($this->file, $columnLabels);
 
-		foreach ($this->records as $record) {
+		foreach (objects\user::getAll() as $user) {
 			$row = [];
 			foreach ($columns as $column) {
-				$row[] = $this->cleanValue($column['value']($record));
+				$row[] = $this->cleanValue($column['value']($user));
 			}
 			fputcsv($this->file, $row);
 		}
@@ -100,15 +126,44 @@ class extract extends object {
 		$file = $this->getFile();
 		$this->prepare();
 
+		$columns = [];
+		$columns[] = ['label' => 'User', 'value' => function($user) { return '<a href="/user/view.php?id=' . $user->id . '">'. $user->getMetaField('firstname') .' '. $user->getMetaField('lastname') .'</a>'; }];
+		// $columns[] = ['label' => 'Last Name', 'value' => function($user) { return $user->getMetaField('lastname'); }];
+		// $columns[] = ['label' => 'Username', 'value' => function($user) { return $user->getMetaField('username'); }];
+		// $columns[] = ['label' => 'Email', 'value' => function($user) { return $user->getMetaField('email'); }];
+		$columns[] = ['label' => 'Site Name', 'value' => function($user) { return $user->getMetaField('sitename'); }];
+		// $columns[] = ['label' => 'Program', 'value' => function($user) { return $user->getMetaField('program'); }];
+		// $columns[] = ['label' => 'Stars ID', 'value' => function($user) { return $user->getMetaField('starsid'); }];
+		$columns[] = ['label' => 'Group', 'value' => function($user) { return $user->getMetaField('groupname'); }];
+
+		$courses = get_config('report_groupcertificatecompletion', 'courses');
+		if (!empty($courses) && ($courses = unserialize($courses))) {
+			foreach ($courses as $courseId) {
+				$course = \get_course($courseId);
+				if (empty($course)) { continue; }
+				$columns[] = ['label' => $course->shortname, 'value' => function($user) use ($courseId) { return $user->courseCompletionDate($courseId); }];
+			}
+		}
+
+		$columns[] = ['label' => 'Name of Track', 'value' => function($user) { return $user->getTrackName(); }];
+		$columns[] = ['label' => 'Total Number of Courses in Track', 'value' => function($user) { return $user->getNumberTrackCourses(); }];
+		$columns[] = ['label' => 'Number of track courses completed by Student', 'value' => function($user) { return $user->getNumberTrackCoursesCompleted(); }];
+		$columns[] = ['label' => 'Course Track Completion Date', 'value' => function($user) { return $user->courseTrackCompletionDate(); }];
+
+
+		$columnLabels = [];
+		foreach ($columns as $column) {
+			$columnLabels[] = $this->cleanValue($column['label']);
+		}
+
 		$table = new \html_table();
-		$table->head = array('Student', 'Course', 'Group', 'Completion Date');
-		foreach ($this->records as $record) {
-		    $item = [];
-		    $item[] = '<a href="/user/view.php?id='.$record->user_id.'">'.$record->user_firstname.' '.$record->user_lastname.'</a>';
-		    $item[] = '<a href="/course/view.php?id='.$record->course_id.'">'.$record->course_name.'</a>';
-			$item[] = $record->group_name;
-			$item[] = date("M d, Y", $record->issue_date);
-		    $table->data[] = $item;
+		$table->head = $columnLabels;
+		foreach (objects\user::getAll() as $user) {
+			$row = [];
+			foreach ($columns as $column) {
+				$row[] = $this->cleanValue($column['value']($user));
+			}
+			$table->data[] = $row;
 		}
 		echo \html_writer::table($table);
 	}

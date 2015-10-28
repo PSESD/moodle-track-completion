@@ -61,6 +61,20 @@ $mform = new report_groupcertificatecompletion\filter_form($baseurl, array());
 $download = optional_param('download', false, PARAM_SAFEDIR);
 $group = optional_param('group', false, PARAM_SAFEDIR);
 
+$context = \context_system::instance();
+if (has_capability('moodle/site:config', $context)) {
+    $category = optional_param('config_category', false, PARAM_RAW);
+    $courses = optional_param_array('config_courses', false, PARAM_INT);
+    $changed = false;
+    if ($category && ($category = serialize($category)) && $category !== get_config('report_groupcertificatecompletion', 'category')) {
+        set_config('category', $category, 'report_groupcertificatecompletion');
+        $changed = true;
+    }
+    if ($courses && ($courses = serialize($courses)) && $courses !== get_config('report_groupcertificatecompletion', 'courses')) {
+        set_config('courses', $courses, 'report_groupcertificatecompletion');
+        $changed = true;
+    }
+}
 $startDate = false;
 $endDate = false;
 $data = $mform->get_data();
