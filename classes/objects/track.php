@@ -20,11 +20,18 @@ class track extends base {
 	public function postLoad()
 	{
 		if (!$this->_loaded) {
+			// \d($this->id);exit;
 			if ($courses = $this->db->get_records('enrol', array('customint1' => $this->id, 'enrol' => 'meta'))) {
 				foreach ($courses as $courseRaw) {
 					$this->courses[] = (int) $courseRaw->courseid;
 				}
 			}
+			// if ($courses = $this->db->get_records('course_sections', array('course' => $this->id, 'visible' => '1'))) {
+			// 	foreach ($courses as $courseRaw) {
+			// 		if (empty($courseRaw->sequence)) { continue; }
+			// 		$this->courses[] = (int) $courseRaw->sequence;
+			// 	}
+			// }
 			$this->_loaded = true;
 		}
 		return parent::postLoad();

@@ -8,7 +8,6 @@ $capabilities = array(
         'archetypes' => array(
             'manager' => CAP_ALLOW,
             'centerdirector' => CAP_ALLOW
-        ),
-        'clonepermissionsfrom' => 'moodle/site:config',
+        )
     )
 );

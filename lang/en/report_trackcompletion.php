@@ -10,5 +10,6 @@ $string['admin_save'] = 'Save';
 $string['admin_settings'] = 'Admin Settings';
 $string['admin_choose_category'] = 'Parent Category for Tracks';
 $string['admin_choose_courses'] = 'Critical Courses';
+$string['admin_default_start_date'] = 'Default Start Date';
 $string['display'] = 'Display';
 $string['trackcompletion:view'] = 'View ' . strtolower($string['pluginname']);

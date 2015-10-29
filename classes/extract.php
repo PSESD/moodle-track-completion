@@ -60,17 +60,19 @@ class extract extends object {
 		objects\user::load($groupMap);
 	}
 
-	protected function rollCsv()
+	protected function rollCsv($includeGroup = true)
 	{
 		$columns = [];
 		$columns[] = ['label' => 'First Name', 'value' => function($user) { return $user->getMetaField('firstname'); }];
 		$columns[] = ['label' => 'Last Name', 'value' => function($user) { return $user->getMetaField('lastname'); }];
-		$columns[] = ['label' => 'Username', 'value' => function($user) { return $user->getMetaField('username'); }];
-		$columns[] = ['label' => 'Email', 'value' => function($user) { return $user->getMetaField('email'); }];
+		//$columns[] = ['label' => 'Username', 'value' => function($user) { return $user->getMetaField('username'); }];
+		//$columns[] = ['label' => 'Email', 'value' => function($user) { return $user->getMetaField('email'); }];
 		$columns[] = ['label' => 'Site Name', 'value' => function($user) { return $user->getMetaField('sitename'); }];
 		$columns[] = ['label' => 'Program', 'value' => function($user) { return $user->getMetaField('program'); }];
 		$columns[] = ['label' => 'Stars ID', 'value' => function($user) { return $user->getMetaField('starsid'); }];
-		$columns[] = ['label' => 'Group', 'value' => function($user) { return $user->getMetaField('groupname'); }];
+		if ($includeGroup) {
+			$columns[] = ['label' => 'Group', 'value' => function($user) { return $user->getMetaField('groupname'); }];
+		}
 		
 		$courses = get_config('report_trackcompletion', 'courses');
 		if (!empty($courses) && ($courses = unserialize($courses))) {
@@ -108,11 +110,11 @@ class extract extends object {
 		return $value;
 	}
 
-	public function serveFile()
+	public function serveFile($includeGroup = true)
 	{
 		$file = $this->getFile();
 		$this->prepare();
-		$this->rollCsv();
+		$this->rollCsv($includeGroup);
 
 		fclose($file);
 		if ($this->error || !file_exists($this->getFilePath())) {
@@ -121,7 +123,7 @@ class extract extends object {
 		\send_file($this->getFilePath(), 'certificate_completion_'.date("Y-m-d") .'.csv', 'default' , 0, false, true, 'application/csv');
 	}
 
-	public function serveTable()
+	public function serveTable($includeGroup = true)
 	{
 		$file = $this->getFile();
 		$this->prepare();
@@ -134,21 +136,23 @@ class extract extends object {
 		$columns[] = ['label' => 'Site Name', 'value' => function($user) { return $user->getMetaField('sitename'); }];
 		// $columns[] = ['label' => 'Program', 'value' => function($user) { return $user->getMetaField('program'); }];
 		// $columns[] = ['label' => 'Stars ID', 'value' => function($user) { return $user->getMetaField('starsid'); }];
-		$columns[] = ['label' => 'Group', 'value' => function($user) { return $user->getMetaField('groupname'); }];
+		if ($includeGroup) {
+			$columns[] = ['label' => 'Group', 'value' => function($user) { return $user->getMetaField('groupname'); }];
+		}
 
 		$courses = get_config('report_trackcompletion', 'courses');
 		if (!empty($courses) && ($courses = unserialize($courses))) {
 			foreach ($courses as $courseId) {
 				$course = \get_course($courseId);
 				if (empty($course)) { continue; }
-				$columns[] = ['label' => $course->shortname, 'value' => function($user) use ($courseId) { return $user->courseCompletionDate($courseId); }];
+				$columns[] = ['label' => $course->shortname, 'center' => true, 'value' => function($user) use ($courseId) { return $user->courseCompletionDate($courseId); }];
 			}
 		}
 
-		$columns[] = ['label' => 'Name of Track', 'value' => function($user) { return $user->getTrackName(); }];
-		$columns[] = ['label' => 'Total Number of Courses in Track', 'value' => function($user) { return $user->getNumberTrackCourses(); }];
-		$columns[] = ['label' => 'Number of track courses completed by Student', 'value' => function($user) { return $user->getNumberTrackCoursesCompleted(); }];
-		$columns[] = ['label' => 'Course Track Completion Date', 'value' => function($user) { return $user->courseTrackCompletionDate(); }];
+		$columns[] = ['label' => 'Name of Track', 'value' => function($user) { return '<a href="/course/view.php?id=' . $user->getTrackId() . '">'.  $user->getTrackName() .'</a>'; }];
+		$columns[] = ['label' => 'Total Number of Courses in Track', 'center' => true, 'value' => function($user) { return $user->getNumberTrackCourses(); }];
+		$columns[] = ['label' => 'Number of track courses completed by Student', 'center' => true, 'value' => function($user) { return $user->getNumberTrackCoursesCompleted(); }];
+		$columns[] = ['label' => 'Course Track Completion Date', 'center' => true, 'value' => function($user) { return $user->courseTrackCompletionDate(); }];
 
 
 		$columnLabels = [];
@@ -161,7 +165,17 @@ class extract extends object {
 		foreach (objects\user::getAll() as $user) {
 			$row = [];
 			foreach ($columns as $column) {
-				$row[] = $this->cleanValue($column['value']($user));
+				$value = $this->cleanValue($column['value']($user));
+				$styles = [];
+				if (!empty($column['center'])) {
+					$styles[] = 'text-align: center;';
+				}
+				if (empty($value)) {
+					$styles[] = 'color: red;';
+					$styles[] = 'font-size: 120%;';
+					$value = '✘';
+				}
+				$row[] = '<div style="'.implode(' ', $styles) .'">' . $value .'</div>';
 			}
 			$table->data[] = $row;
 		}

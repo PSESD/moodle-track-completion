@@ -29,10 +29,25 @@ class filter_form extends \moodleform {
     public static function getGroups()
     {
         global $DB;
-        $groups = $DB->get_records_sql('SELECT id, name, enrolmentkey FROM {groups}  WHERE enrolmentkey != "" GROUP BY name, enrolmentkey');
-        $groupsSelect = [];
-        foreach($groups as $group) {
-            $groupsSelect[$group->enrolmentkey] = $group->name . ' ('.$group->enrolmentkey.')';
+        global $USER;
+
+        static $groupsSelect;
+        if (!isset($gropSelect)) {
+            $enrolmentFilter = false;
+            $context = \context_system::instance();
+            if (!has_capability('moodle/site:config', $context)) {
+                $enrolmentFilter = array();
+                if (!empty($USER->profile['EnrollmentCodeScope'])) {
+                    $enrolmentFilter = explode(',', $USER->profile['EnrollmentCodeScope']);
+                }
+            }
+            $groups = $DB->get_records_sql('SELECT id, name, enrolmentkey FROM {groups}  WHERE enrolmentkey != "" GROUP BY name, enrolmentkey');
+            $groupsSelect = [];
+            foreach($groups as $group) {
+                if ($enrolmentFilter === false || in_array($group->enrolmentkey, $enrolmentFilter)) {
+                    $groupsSelect[$group->enrolmentkey] = $group->name . ' ('.$group->enrolmentkey.')';
+                }
+            }
         }
         return $groupsSelect;
     }
@@ -46,10 +61,15 @@ class filter_form extends \moodleform {
         
         // Add action button to the top of the form.
         $addactionbuttons = false;
+
         // Group
         $mform->addElement('header', 'grouphead', get_string('choose_group', 'report_trackcompletion'));
         $mform->setExpanded('grouphead', true);
-        $groups = array_merge(['' => ''], static::getGroups());
+        $groups = static::getGroups();
+        $context = \context_system::instance();
+        if (has_capability('moodle/site:config', $context)) {
+            $groups = array_merge(['' => ''], $groups);
+        }
         $mform->addElement('select', 'group', 'Group', $groups);
 
 
@@ -58,7 +78,13 @@ class filter_form extends \moodleform {
         $mform->setExpanded('daterangehead', true);
         $mform->addElement('date_selector', 'start_date', 'Start Date');
         $mform->addElement('date_selector', 'end_date', 'End Date');
-        $mform->setDefault('start_date', strtotime("1 year ago"));
+        $default_start_date = get_config('report_trackcompletion', 'default_start_date');
+        if (empty($default_start_date)) {
+            $default_start_date = time();
+        } else {
+            $default_start_date = unserialize($default_start_date);
+        }
+        $mform->setDefault('start_date', $default_start_date);
         $mform->setDefault('end_date', time());
         
         $buttonarray=array();

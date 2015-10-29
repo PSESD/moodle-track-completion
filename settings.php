@@ -24,9 +24,13 @@
  */
 
 defined('MOODLE_INTERNAL') || die;
-//if (has_capability('report/trackcompletion:view', $context)) {
+
+$context = \context_system::instance();
+if (has_capability('report/trackcompletion:view', $context)) {
 	$url = $CFG->wwwroot . '/report/trackcompletion/index.php';
-	    $ADMIN->add('reports', new admin_externalpage('reporttrackcompletion', get_string('pluginname', 'report_trackcompletion'), $url));
-//}
+    $ADMIN->add('reports', new admin_externalpage('reporttrackcompletion', get_string('pluginname', 'report_trackcompletion'), $url));
+    //echo "done";exit;
+}
+
 // no report settings
 $settings = null;

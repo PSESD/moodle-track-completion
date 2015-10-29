@@ -55,21 +55,44 @@ require_once(dirname(__FILE__) . '/classes/adminform.php');
 
 
 require_login();
-admin_externalpage_setup('reporttrackcompletion', '', null, '', array('pagelayout'=>'report'));
+
+$url = new moodle_url('/report/trackcompletion/index.php');
+$PAGE->set_url($url);
+$PAGE->set_pagelayout('admin');
+
+$context = \context_system::instance();
+$PAGE->set_context($context);
+$PAGE->set_title(get_string('pluginname', 'report_trackcompletion'));
+
+require_capability('report/trackcompletion:view', $context);
 
 $baseurl = new moodle_url('/report/trackcompletion/index.php');
+$groups = report_trackcompletion\filter_form::getGroups();
+
+
+if (empty($groups)) {
+    echo $OUTPUT->header();
+    echo $OUTPUT->heading(get_string('pluginname', 'report_trackcompletion'));
+    echo "You do not have permission to access any groups. Please contact your Moodle administrator and ask them to fill out the <strong>Director Enrollment Code Scope</strong> field in your user profile.";
+    echo $OUTPUT->footer();
+    return;
+}
 $mform = new report_trackcompletion\filter_form($baseurl, array());
 $download = optional_param('download', false, PARAM_SAFEDIR);
 $group = optional_param('group', false, PARAM_SAFEDIR);
-
 $context = \context_system::instance();
 if (has_capability('moodle/site:config', $context)) {
     $aform = new report_trackcompletion\admin_form($baseurl, array());
     $save = optional_param('savebutton', false, PARAM_SAFEDIR);
     if ($save) {
+        $default_start_date = optional_param_array('config_default_start_date', false, PARAM_RAW);
         $category = optional_param('config_category', false, PARAM_RAW);
         $courses = optional_param_array('config_courses', false, PARAM_INT);
         $changed = false;
+        if ($default_start_date && ($default_start_date = serialize($default_start_date)) && $default_start_date !== get_config('report_trackcompletion', 'default_start_date')) {
+            set_config('default_start_date', $default_start_date, 'report_trackcompletion');
+            $changed = true;
+        }
         if ($category && ($category = serialize($category)) && $category !== get_config('report_trackcompletion', 'category')) {
             set_config('category', $category, 'report_trackcompletion');
             $changed = true;
@@ -79,6 +102,12 @@ if (has_capability('moodle/site:config', $context)) {
             $changed = true;
         }
     }
+} elseif ($group !== false && (empty($group) || !isset($groups[$group]))) {
+    echo $OUTPUT->header();
+    echo $OUTPUT->heading(get_string('pluginname', 'report_trackcompletion'));
+    echo "You do not have permission to access this group.";
+    echo $OUTPUT->footer();
+    return;
 }
 $startDate = false;
 $endDate = false;
@@ -91,11 +120,10 @@ if ($data) {
 if ($download) {
 	\report_trackcompletion\event\report_viewed::create(array('other' => array('group' => $group, 'start_date' => $startDate, 'end_date' => $endDate)))->trigger();
 	$reporter = new \report_trackcompletion\extract($group, $startDate, $endDate);
-	$reporter->serveFile();
+	$reporter->serveFile(!$group);
 	exit(0);
 }
 echo $OUTPUT->header();
-
 echo $OUTPUT->heading(get_string('pluginname', 'report_trackcompletion'));
 echo $OUTPUT->box_start('generalbox boxwidthwide boxaligncenter centerpara');
 if (isset($aform)) {
@@ -108,7 +136,7 @@ if ($mform->is_cancelled()) {
 } else if ($data) {
     \report_trackcompletion\event\report_viewed::create(array('other' => array('group' => $group, 'start_date' => $startDate, 'end_date' => $endDate)))->trigger();
     $reporter = new \report_trackcompletion\extract($group, $startDate, $endDate);
-    $reporter->serveTable();
+    $reporter->serveTable(!$group);
 }
 
 echo $OUTPUT->box_end();

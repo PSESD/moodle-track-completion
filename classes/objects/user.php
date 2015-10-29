@@ -75,12 +75,19 @@ class user extends base {
 	public function postLoad()
 	{
 		if (!$this->_loaded) {
-			if ($courseCompletions = $this->db->get_records('course_completions', array('userid' => $this->id))) {
-				foreach ($courseCompletions as $completionRaw) {
-					if (empty($completionRaw->timecompleted)) { continue; }
-					$this->_completed_courses[$completionRaw->course] = (int) $completionRaw->timecompleted;
-				}
+			$certificatesRaw = $this->db->get_records_sql('SELECT c.id, c.course as course, ci.timecreated as timecreated FROM {certificate_issues} ci LEFT JOIN {certificate} c ON (c.id = ci.certificateid) WHERE ci.userid=?', array($this->id));
+			//\d($certificatesRaw);exit;
+
+			foreach ($certificatesRaw as $certificate) {
+				$this->_completed_courses[$certificate->course] = (int) $certificate->timecreated;
 			}
+
+			// if ($courseCompletions = $this->db->get_records('course_completions', array('userid' => $this->id))) {
+			// 	foreach ($courseCompletions as $completionRaw) {
+			// 		if (empty($completionRaw->timecompleted)) { continue; }
+			// 		$this->_completed_courses[$completionRaw->course] = (int) $completionRaw->timecompleted;
+			// 	}
+			// }
 			$track = track::load($this->meta['trackcourse']);
 			if ($track) {
 				$this->_track = $track;
@@ -122,6 +129,9 @@ class user extends base {
 					$completed[$course] = $this->_completed_courses[$course];
 				}
 			}
+			// \d($this->_track->courses);
+			// \d($this->_completed_courses);
+			// \d($completed);exit;
 		}
 		return $completed;
 	}
@@ -181,11 +191,21 @@ class user extends base {
 		}
 		return null;
 	}
-
-	public function getTrackName()
+	public function getTrackId()
 	{
 		if (isset($this->_track)) {
-			return $this->_track->getMetaField('shortname');
+			return $this->_track->id;
+		}
+		return null;
+	}
+	public function getTrackName($short = true)
+	{
+		if (isset($this->_track)) {
+			if ($short) {
+				return $this->_track->getMetaField('idnumber');
+			} else {
+				return $this->_track->getMetaField('shortname');
+			}
 		}
 		return null;
 	}
@@ -194,6 +214,9 @@ class user extends base {
 		if (empty($this->_track)) {
 			return false;
 		}
+		// if ($this->_track->id != 173) {
+		// 	return false;
+		// }
 		if (!empty($this->meta['deleted'])) {
 			return false;
 		}

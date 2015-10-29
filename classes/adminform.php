@@ -71,8 +71,10 @@ class admin_form extends \moodleform {
         $mform->setExpanded('grouphead', false);
         $mform->addElement('select', 'config_category', get_string('admin_choose_category', 'report_trackcompletion'), static::getCategories());
         $mform->addElement('select', 'config_courses', get_string('admin_choose_courses', 'report_trackcompletion'), static::getCourses(), array('multiple' => true));
+        $mform->addElement('date_selector', 'config_default_start_date', get_string('admin_default_start_date', 'report_trackcompletion'));
         $mform->setDefault('config_category', unserialize(get_config('report_trackcompletion', 'category')));
         $mform->setDefault('config_courses', unserialize(get_config('report_trackcompletion', 'courses')));
+        $mform->setDefault('config_default_start_date', unserialize(get_config('report_trackcompletion', 'default_start_date')));
         $mform->addElement('submit', 'savebutton', get_string("admin_save", 'report_trackcompletion'));
         // $buttonarray=array();
         // $buttonarray[] = &$mform->createElement('submit', 'savebutton', get_string("admin_save", 'report_trackcompletion'));
